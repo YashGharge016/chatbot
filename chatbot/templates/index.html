@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot UI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f0ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chatbox {
+            width: 600px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 2px solid #3b5998;
+        }
+
+        .chatlog {
+            padding: 20px;
+            height: 400px;
+            overflow-y: scroll;
+            background-color: #e6f0ff;
+        }
+
+        .message-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            background-color: #d0e6ff;
+            align-self: flex-end;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background-color: #f0f0f0;
+            align-self: flex-start;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+            text-align: left;
+            margin-right: auto;
+            word-wrap: break-word;
+        }
+
+        .input-box {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #ffffff;
+        }
+
+        .input-box input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .input-box button {
+            padding: 8px 15px;
+            background-color: #3b5998;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .input-box button:hover {
+            background-color: #2d4373;
+        }
+
+        .typing-indicator {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            margin-right: auto;
+            margin-left: auto;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
+            background-color: #3b5998;
+            border-radius: 50%;
+            animation: typing 1s infinite;
+        }
+
+        @keyframes typing {
+            0%, 100% {
+                transform: scale(0.8);
+                opacity: 0.7;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbox">
+        <div class="chatlog" id="chatlog">
+            <!-- Chat messages will be dynamically added here -->
+        </div>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="input-box">
+            <input type="text" id="user_input" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        function sendMessage() {
+            let user_input = document.getElementById('user_input').value;
+            if (user_input.trim() === '') return;  // Prevent sending empty messages
+            document.getElementById('user_input').value = '';
+            appendMessage('You', user_input, 'user-message');
+
+            document.getElementById('typing-indicator').style.display = 'flex';
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_input: user_input })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('typing-indicator').style.display = 'none';
+                if (Array.isArray(data.response)) {
+                    data.response.forEach(item => {
+                        appendMessage('AI', item, 'ai-message');
+                    });
+                } else {
+                    appendMessage('AI', data.response, 'ai-message');
+                }
+            });
+        }
+
+        function appendMessage(sender, message, messageClass) {
+            let chatlog = document.getElementById('chatlog');
+            let messageContainer = document.createElement('div');
+            messageContainer.classList.add('message-container');
+
+            let messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(messageClass);
+
+            if (Array.isArray(message)) {
+                message.forEach(item => {
+                    let paragraph = document.createElement('p');
+                    paragraph.textContent = item;
+                    messageElement.appendChild(paragraph);
+                });
+            } else {
+                messageElement.textContent = message;
+            }
+
+            messageContainer.appendChild(messageElement);
+            chatlog.appendChild(messageContainer);
+            chatlog.scrollTop = chatlog.scrollHeight;
+        }
+
+        // Add event listener for Enter key on the input field
+        document.getElementById('user_input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
